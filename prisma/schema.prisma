@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String?
+  isDriver    Boolean  @default(false)
+  reliability Float    @default(5.0)
+  createdAt   DateTime @default(now())
+
+  rides        Ride[]        @relation("DriverRides")
+  rideRequests RideRequest[]
+  messages     Message[]
+  ratingsGiven Rating[]      @relation("RatingsGiven")
+  ratingsRecv  Rating[]      @relation("RatingsRecv")
+}
+
+model Ride {
+  id         String   @id @default(cuid())
+  driverId   String
+  driver     User     @relation("DriverRides", fields: [driverId], references: [id])
+  departTime DateTime
+  fromLabel  String
+  toCampus   String
+  seats      Int
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  requests RideRequest[]
+  messages Message[] // <-- add this
+  ratings  Rating[] // <-- add this
+}
+
+model RideRequest {
+  id        String        @id @default(cuid())
+  rideId    String
+  ride      Ride          @relation(fields: [rideId], references: [id])
+  riderId   String
+  rider     User          @relation(fields: [riderId], references: [id])
+  status    RequestStatus @default(PENDING)
+  createdAt DateTime      @default(now())
+}
+
+enum RequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  rideId    String
+  ride      Ride     @relation(fields: [rideId], references: [id])
+  senderId  String
+  sender    User     @relation(fields: [senderId], references: [id])
+  body      String
+  createdAt DateTime @default(now())
+}
+
+model Rating {
+  id        String   @id @default(cuid())
+  fromId    String
+  from      User     @relation("RatingsGiven", fields: [fromId], references: [id])
+  toId      String
+  to        User     @relation("RatingsRecv", fields: [toId], references: [id])
+  rideId    String
+  ride      Ride     @relation(fields: [rideId], references: [id])
+  score     Int
+  comment   String?
+  createdAt DateTime @default(now())
+}
